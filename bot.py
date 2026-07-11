@@ -11,8 +11,7 @@ from telegram.ext import (
 )
 
 import fitz  # PyMuPDF
-from PIL import Image
-import pytesseract
+
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -40,10 +39,7 @@ async def extract_pdf(file_path):
 
             pix.save(img_path)
 
-            img = Image.open(img_path)
-
-            text += pytesseract.image_to_string(img)
-
+            
             os.remove(img_path)
 
     doc.close()
@@ -69,26 +65,6 @@ async def pdf_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    photo = update.message.photo[-1]
-
-    file = await photo.get_file()
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
-        await file.download_to_drive(tmp.name)
-
-        img = Image.open(tmp.name)
-
-        text = pytesseract.image_to_string(img)
-
-    os.remove(tmp.name)
-
-    if len(text.strip()) == 0:
-        await update.message.reply_text("❌ Текст не найден.")
-    else:
-        await update.message.reply_text(
-            "✅ Текст извлечён:\n\n" + text[:4000]
-        )
 
 
 app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
@@ -97,10 +73,6 @@ app.add_handler(CommandHandler("start", start))
 
 app.add_handler(
     MessageHandler(filters.Document.PDF, pdf_handler)
-)
 
-app.add_handler(
-    MessageHandler(filters.PHOTO, photo_handler)
-)
 
 app.run_polling()
