@@ -1,78 +1,54 @@
+
 import os
+
 import tempfile
 
+import fitz
+
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    filters,
-)
 
-import fitz  # PyMuPDF
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE): await update.message.reply_text(
 
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "👋 Привет!\n\n"
-        "Отправьте PDF или фотографию Rate Confirmation."
-    )
-
+" DispatchPilot Al\n\nSend PDF Rate Confirmation."
 
 async def extract_pdf(file_path):
-    text = ""
 
-    doc = fitz.open(file_path)
+doc = fitz.open(file_path)
 
-    for page in doc:
-        page_text = page.get_text()
+for page in doc:
 
-        if page_text.strip():
-            text += page_text + "\n"
+page_text = page.get_text()
 
-        else:
-            pix = page.get_pixmap(dpi=300)
+if page_text.strip():
 
-            img_path = file_path + ".png"
+text += page_text + "\n"
 
-            pix.save(img_path)
+doc.close()
 
-            
-            os.remove(img_path)
+return text
 
-    doc.close()
+async def pdf_handler(update: Update, context: ContextTypes.DEFAULT_TYPE): file = await update.message.document.get_file()
 
-    return text
+with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
 
+await file.download_to_drive(tmp.name)
 
-async def pdf_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    file = await update.message.document.get_file()
+text = await extract_pdf(tmp.name)
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        await file.download_to_drive(tmp.name)
+os.remove(tmp.name)
 
-        text = await extract_pdf(tmp.name)
+if not text.strip():
 
-    os.remove(tmp.name)
+await update.message.reply_text(" PDF does not contain readable text.")
 
-    if len(text.strip()) == 0:
-        await update.message.reply_text("❌ Не удалось извлечь текст.")
-    else:
-        await update.message.reply_text(
-            "✅ Текст извлечён:\n\n" + text[:4000]
-        )
+else:
 
-
-
+await update.message.reply_text(" Text extracted:\n\n" + text[:4000])
 
 app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
 
-app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("start", start)) app.add_handler(MessageHandler(filters.Document.PDF, pdf_handler))
 
-app.add_handler(
-    MessageHandler(filters.Document.PDF, pdf_handler)
-
-
-app.run_polling()
+print("DispatchPilot Al started") prin app.run_polling()
