@@ -1,3 +1,3 @@
-from bot import app
+from bot import main
 
-app.run_polling()
+main()
