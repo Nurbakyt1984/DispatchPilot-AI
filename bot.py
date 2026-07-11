@@ -20,7 +20,6 @@ doc = fitz.open(file_path)
 for page in doc:
 
 page_text = page.get_text()
-
 if page_text.strip():
 
 text += page_text + "\n"
